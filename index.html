@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Electron Chibi Battle 3D | ศึกจัดเรียงอิเล็กตรอน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Noto+Sans+Thai:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#27325f;--muted:#6f7ba3;--line:#dbe8ff;--soft:#f3f8ff;--mint:#2ec4b6;--sky:#5aa9ff;--pink:#ff8fab;--sun:#ffd166;--lav:#b79cff;--ok:#1faa7a;--bad:#f2761f;--shadow:#cfe0ff;--k:#6c7bff;--l:#22c7e8;--m:#2fcf9a;--n:#b283ff}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:"Noto Sans Thai",Tahoma,sans-serif;color:var(--ink);background:radial-gradient(700px 420px at 0% 0%,#fff0f5 0%,transparent 60%),radial-gradient(700px 420px at 100% 100%,#e8fbf7 0%,transparent 60%),#fff;line-height:1.55;overflow:hidden}
+h1,h2,h3,.sym,output,.big{font-family:"Mali","Noto Sans Thai",sans-serif}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.app{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(350px,.85fr);gap:16px;height:100%;padding:16px}
+.card{background:#fffffff2;border:2.5px solid var(--line);box-shadow:0 5px 0 var(--shadow)}
+.stage{position:relative;border-radius:32px;overflow:hidden;border:3px solid var(--line);background:radial-gradient(circle at 50% 50%,#fff 0%,#eef7ff 80%),#fff;box-shadow:0 8px 0 var(--shadow);min-height:0}
+.stage:before{content:"";position:absolute;inset:0;background-image:radial-gradient(#cfe0ff 1.3px,transparent 1.4px);background-size:24px 24px;opacity:.75;pointer-events:none}
+.stage.shake{animation:shk .4s}
+@keyframes shk{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.decor{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.sp{position:absolute;width:22px;animation:tw 3s ease-in-out infinite}
+@keyframes tw{50%{transform:scale(.55) rotate(25deg);opacity:.5}}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;z-index:1}
+#gl:active{cursor:grabbing}
+.hud{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;gap:8px;z-index:5;pointer-events:none;align-items:flex-start}
+.hp{flex:1 1 0;max-width:230px;min-width:0;padding:8px 12px;border-radius:20px}
+.hp .t{display:flex;justify-content:space-between;gap:6px;font-size:.76rem;font-weight:700}
+.hp .t span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:12px;border-radius:99px;background:#eaf1ff;overflow:hidden;margin-top:5px;border:2px solid #fff;box-shadow:inset 0 0 0 1.5px var(--line)}
+.bar span{display:block;height:100%;border-radius:99px;transition:width .5s}
+#hpH{background:linear-gradient(90deg,var(--mint),var(--sky));width:100%}
+#hpB{background:linear-gradient(90deg,var(--pink),var(--sun));width:100%}
+.target{flex:none;padding:7px 18px;border-radius:22px;text-align:center;border-color:var(--sun);box-shadow:0 5px 0 #ffe7a8}
+.target small{display:block;font-size:.68rem;color:var(--muted)}
+.target .big{font-size:1.6rem;font-weight:700;line-height:1.15;color:var(--pink)}
+.legend{position:absolute;left:14px;bottom:14px;z-index:5;display:flex;gap:6px;pointer-events:none;flex-wrap:wrap;max-width:60%}
+.lg{padding:4px 11px;border-radius:99px;font-size:.76rem;font-weight:700;display:flex;gap:6px;align-items:center}
+.lg i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.tools{position:absolute;right:14px;bottom:14px;z-index:5;display:flex;gap:8px}
+.tools button{padding:8px 14px;border-radius:99px;font-size:.8rem;font-weight:500;transition:.2s}
+.tools button:hover{transform:translateY(-2px)}
+.tools button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--shadow)}
+.tools button.on{background:#d9f7f1;border-color:var(--mint)}
+#hs{position:absolute;inset:0;pointer-events:none;z-index:4;overflow:hidden}
+.hs{position:absolute;left:0;top:0;pointer-events:auto;display:flex;align-items:center;gap:8px;white-space:nowrap;will-change:transform}
+.pin{position:relative;width:28px;height:28px;border-radius:50%;background:var(--c,#16b9a3);border:3px solid #fff;box-shadow:0 3px 0 #27325f33,0 6px 14px #27325f33;display:grid;place-items:center;font-weight:700;font-size:.8rem;color:#fff;transition:.2s}
+.pin:before{content:"";position:absolute;inset:-8px;border-radius:50%;border:2.5px solid var(--c,#16b9a3);animation:pulse 2s ease-out infinite}
+.hs:hover .pin,.hs.open .pin{transform:scale(1.2)}
+.tag{padding:4px 12px;border-radius:99px;font-size:.76rem;font-weight:500;background:#fff;border:2px solid var(--line);box-shadow:0 3px 0 var(--shadow);opacity:0;transform:translateX(-6px);transition:.25s}
+.hs:hover .tag,.hs.open .tag{opacity:1;transform:none}
+@keyframes pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(1.7);opacity:0}}
+#hcard{position:absolute;left:50%;bottom:62px;width:min(430px,calc(100% - 28px));transform:translate(-50%,20px) scale(.94);opacity:0;pointer-events:none;z-index:6;padding:16px 22px;border-radius:26px;transition:.35s cubic-bezier(.2,.9,.3,1.3);border:3px solid var(--c,#16b9a3);box-shadow:0 6px 0 var(--c,#16b9a3)}
+#hcard.show{opacity:1;transform:translate(-50%,0) scale(1);pointer-events:auto}
+#hcard h3{font-size:1.05rem;color:var(--c,#16b9a3);margin-bottom:2px}
+#hcard p{font-size:.88rem}
+#hcard .x{position:absolute;top:6px;right:14px;font-size:1.4rem;color:var(--muted)}
+.dmg{position:absolute;font-family:"Mali";font-weight:700;font-size:1.5rem;color:var(--pink);text-shadow:0 2px 0 #fff,2px 2px 0 #fff,-2px 0 0 #fff;animation:up 1s ease-out forwards;white-space:nowrap;transform:translate(-50%,-50%)}
+.dmg.ok{color:#ff9f1c}
+@keyframes up{0%{opacity:0;margin-top:0;scale:.5}30%{opacity:1;scale:1.25}100%{opacity:0;margin-top:-70px;scale:1}}
+.panel{display:flex;flex-direction:column;min-height:0;border-radius:32px;overflow:hidden;background:#fff;border:3px solid var(--line);box-shadow:0 8px 0 var(--shadow)}
+.head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--soft);border-bottom:2.5px dashed var(--line)}
+.logo{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#fff1b8,#ffd9e4);display:grid;place-items:center;font-size:1.6rem;border:2px solid var(--line);flex:none}
+.head h1{font-size:1.1rem;line-height:1.25}
+.head p{font-size:.76rem;color:var(--muted)}
+.head .grow{flex:1;min-width:0}
+.pages{flex:1;overflow:auto;padding:16px;min-height:0;scrollbar-width:thin;scrollbar-color:#cfe0ff transparent}
+.btn{padding:10px 18px;border-radius:99px;font-weight:700;font-size:.88rem;background:var(--mint);color:#fff;box-shadow:0 4px 0 #1b9a8e;transition:.15s}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1b9a8e}
+.btn.ghost{background:#fff;color:var(--ink);border:2.5px solid var(--line);box-shadow:0 4px 0 var(--shadow);font-weight:500}
+.stat{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.chip{padding:5px 13px;border-radius:99px;font-size:.8rem;font-weight:700;background:#e7f3ff}
+.chip.mon{background:#fff6dc;flex:1;min-width:0}
+.chip.sc{background:#e6faf6;color:#16806f}
+.tile{display:flex;gap:16px;align-items:center;padding:14px 18px;border-radius:26px;margin-bottom:12px;background:linear-gradient(135deg,#fff,var(--soft));border:2.5px dashed var(--pink);position:relative;overflow:hidden}
+.tile:before{content:"";position:absolute;width:140px;height:140px;right:-30px;top:-50px;border-radius:50%;background:var(--pink);opacity:.14}
+.tile .sym{font-size:3rem;font-weight:700;line-height:1.1;color:var(--pink);text-shadow:3px 3px 0 var(--line)}
+.tile b{font-size:1.05rem}
+.tile small{display:block;color:var(--muted);font-size:.8rem}
+.pop{animation:pop .5s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes pop{0%{transform:scale(.88);opacity:.4}100%{transform:none;opacity:1}}
+.tot{display:flex;justify-content:space-between;align-items:center;margin:4px 0 4px;font-size:.86rem;font-weight:700}
+.tot b{font-family:"Mali";font-size:1.15rem}
+.tot b.ok{color:var(--ok)}.tot b.over{color:var(--bad)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 14px}
+.sh{padding:10px 12px;border-radius:20px;border:2.5px solid var(--cc);background:color-mix(in srgb,var(--cc) 10%,#fff)}
+.sh .r{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;font-weight:700}
+.sh output{font-size:1.5rem;color:var(--cc)}
+.ctl{display:grid;grid-template-columns:30px 1fr 30px;gap:8px;align-items:center;margin-top:4px}
+.ctl button{width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid var(--cc);font-weight:700;font-size:1.05rem;color:var(--cc);line-height:1;transition:.15s}
+.ctl button:active{transform:scale(.88)}
+input[type=range]{width:100%;accent-color:var(--cc);height:6px}
+.atk{width:100%;padding:14px;border-radius:99px;font-family:"Mali";font-weight:700;font-size:1.1rem;color:#fff;background:linear-gradient(90deg,#ff8fab,#b79cff,#5aa9ff);box-shadow:0 6px 0 #7b86d9;transition:.15s;display:flex;justify-content:center;gap:8px}
+.atk:hover:not(:disabled){transform:translateY(-2px)}
+.atk:active:not(:disabled){transform:translateY(4px);box-shadow:0 2px 0 #7b86d9}
+.atk:disabled{opacity:.6;cursor:default}
+.tip{margin-top:12px;font-size:.78rem;color:var(--muted);text-align:center}
+.mask{position:fixed;inset:0;background:#27325f66;backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+.mask.on{display:flex}
+.modal{background:#fff;border-radius:30px;max-width:440px;width:100%;max-height:90vh;overflow:auto;padding:22px;border:3px solid var(--line);box-shadow:0 8px 0 var(--shadow);animation:pop .45s cubic-bezier(.2,.9,.3,1.4)}
+.modal.wide{max-width:520px}
+.mh{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.mi{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:1.6rem;color:#fff;flex:none}
+.mh h3{font-size:1.1rem;line-height:1.3}
+.mh p{font-size:.8rem;color:var(--muted)}
+.mb{padding:14px;border-radius:20px;font-size:.88rem;margin-bottom:14px}
+.mb.good{background:#e1f8ee;border:2px dashed var(--ok)}
+.mb.badc{background:#fff0e4;border:2px dashed var(--bad)}
+.code{font-family:"Mali";font-weight:700;background:#fff;padding:1px 10px;border-radius:99px;border:2px solid var(--line)}
+.sec{padding:12px 14px;border-radius:20px;margin-bottom:10px;font-size:.86rem}
+.sec h4{font-family:"Mali";margin-bottom:4px}
+.sec ul{padding-left:18px}
+@media(max-width:980px){
+body{overflow:auto}
+.app{grid-template-columns:1fr;height:auto}
+.stage{height:64vh;min-height:430px}
+.panel{min-height:540px}
+}
+@media(max-width:520px){.hp{padding:6px 8px}.hp .t{font-size:.68rem}.target{padding:5px 10px}.target .big{font-size:1.2rem}.tools button{padding:7px 10px;font-size:.72rem}.legend{max-width:52%}.lg{font-size:.68rem;padding:3px 8px}}
+</style>
+</head>
+<body>
+<div class="app">
+<section class="stage" id="stage">
+<div class="decor" aria-hidden="true">
+<svg class="sp" style="left:12%;top:24%" viewBox="0 0 24 24"><path d="M12 1l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#ffd166" stroke="#27325f" stroke-width="1.5" stroke-linejoin="round"/></svg>
+<svg class="sp" style="right:22%;top:20%;animation-delay:.8s" viewBox="0 0 24 24"><path d="M12 1l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#ff8fab" stroke="#27325f" stroke-width="1.5" stroke-linejoin="round"/></svg>
+<svg class="sp" style="left:46%;bottom:30%;width:16px;animation-delay:1.4s" viewBox="0 0 24 24"><path d="M12 1l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#8ff0dc" stroke="#27325f" stroke-width="1.5" stroke-linejoin="round"/></svg>
+<svg class="sp" style="right:7%;bottom:40%;width:18px;animation-delay:2s" viewBox="0 0 24 24"><path d="M12 1l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#b79cff" stroke="#27325f" stroke-width="1.5" stroke-linejoin="round"/></svg>
+</div>
+<canvas id="gl" aria-label="ฉากต่อสู้ 3 มิติ ลากเพื่อหมุน เลื่อนล้อเมาส์เพื่อซูม"></canvas>
+<div class="hud">
+<div class="hp card"><div class="t"><span>🧑‍🔬 น้องอะตอม</span><span id="hhT">100/100</span></div><div class="bar"><span id="hpH"></span></div></div>
+<div class="target card"><small>โจทย์ธาตุเป้าหมาย</small><div class="big"><span id="hSym">N</span> <span style="font-size:.9rem;color:var(--ink)">Z=<span id="hZ">7</span></span></div></div>
+<div class="hp card"><div class="t"><span id="bName">ปีศาจออกไซด์</span><span id="bhT">100/100</span></div><div class="bar"><span id="hpB"></span></div></div>
+</div>
+<div id="hs"></div>
+<div id="hcard" class="card" role="dialog" aria-live="polite"><button class="x" id="hx" type="button" aria-label="ปิด">×</button><h3 id="hct"></h3><p id="hcp"></p></div>
+<div class="legend" id="legend"></div>
+<div class="tools"><button class="card" id="sndBtn" type="button">🔊 เสียง</button><button class="card" id="autoBtn" type="button">หมุนอัตโนมัติ</button><button class="card" id="resetBtn" type="button">รีเซ็ตมุมกล้อง</button></div>
+</section>
+<aside class="panel">
+<div class="head"><div class="logo">⚡</div><div class="grow"><h1>Electron Chibi Battle</h1><p>ศึกจัดเรียงอิเล็กตรอน ม.ต้น</p></div><button class="btn ghost" id="guideBtn" type="button">📖 คู่มือ</button></div>
+<div class="pages">
+<div class="stat"><span class="chip" id="stageBadge">ด่านที่ 1/3</span><span class="chip mon" id="monTitle"></span><span class="chip sc">⭐ <span id="score">0</span></span></div>
+<div class="tile pop" id="tile"><div class="sym" id="tSym">N</div><div><b id="tTh">ไนโตรเจน</b><small id="tEn">Nitrogen</small><small>เลขอะตอม (Z) = <b id="tZ">7</b> · ต้องใช้ e⁻ <b id="tE">7</b> ตัว</small></div></div>
+<div class="tot"><span>รวมใช้ไป</span><span><b id="tot">0</b> / <b id="tgt">7</b> e⁻</span></div>
+<div class="bar"><span id="totBar" style="background:linear-gradient(90deg,var(--mint),var(--sky));width:0"></span></div>
+<div class="grid" id="shells"></div>
+<button class="atk" id="atk" type="button">⚡ ปล่อยลำแสงอิเล็กตรอนโจมตี!</button>
+<p class="tip">ลากบนฉากเพื่อหมุนมุมกล้อง · คลิกหมุดบนฉากเพื่อเรียนรู้เพิ่มเติม</p>
+</div>
+</aside>
+</div>
+<div class="mask" id="resM"><div class="modal"><div class="mh"><div class="mi" id="rI">✓</div><div><h3 id="rT"></h3><p id="rS"></p></div></div><div class="mb" id="rB"></div><button class="btn" id="rBtn" type="button" style="width:100%"></button></div></div>
+<div class="mask" id="guideM"><div class="modal wide"><div class="mh"><div class="mi" style="background:var(--sky)">🎓</div><div><h3>สรุปหลักการจัดเรียงอิเล็กตรอน</h3><p>สำหรับธาตุเลขอะตอม 1 – 20</p></div></div>
+<div class="sec" style="background:#eef2ff"><h4>1. ชั้นพลังงานหลัก</h4><ul><li>ชั้น K (n=1) รับได้สูงสุด <b>2</b> e⁻</li><li>ชั้น L (n=2) รับได้สูงสุด <b>8</b> e⁻</li><li>ชั้น M (n=3) รับได้สูงสุด <b>8</b> e⁻ (สำหรับ Z 1–20)</li><li>ชั้น N (n=4) รับได้สูงสุด <b>2</b> e⁻ (สำหรับ Z 1–20)</li></ul></div>
+<div class="sec" style="background:#fff6dc"><h4>2. กฎการบรรจุ</h4><p>ต้องเติมชั้นในให้เต็มก่อนจึงไปชั้นถัดไปได้ K และ Ca ที่ชั้น M เต็ม 8 ตัวแล้ว ส่วนที่เหลือ 1–2 ตัวจะไปอยู่ชั้น N</p></div>
+<div class="sec" style="background:#f3f8ff"><h4>3. ตัวอย่างสำคัญ</h4><ul style="list-style:none;padding:0"><li>O (Z=8) → <span class="code">2, 6</span></li><li>Na (Z=11) → <span class="code">2, 8, 1</span></li><li>Ar (Z=18) → <span class="code">2, 8, 8</span></li><li>Ca (Z=20) → <span class="code">2, 8, 8, 2</span></li></ul></div>
+<button class="btn" id="gOk" type="button" style="width:100%">เข้าใจแล้ว! พร้อมลุย</button></div></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const NAMES=[["H","Hydrogen","ไฮโดรเจน"],["He","Helium","ฮีเลียม"],["Li","Lithium","ลิเทียม"],["Be","Beryllium","เบริลเลียม"],["B","Boron","โบรอน"],["C","Carbon","คาร์บอน"],["N","Nitrogen","ไนโตรเจน"],["O","Oxygen","ออกซิเจน"],["F","Fluorine","ฟลูออรีน"],["Ne","Neon","นีออน"],["Na","Sodium","โซเดียม"],["Mg","Magnesium","แมกนีเซียม"],["Al","Aluminium","อะลูมิเนียม"],["Si","Silicon","ซิลิกอน"],["P","Phosphorus","ฟอสฟอรัส"],["S","Sulfur","กำมะถัน"],["Cl","Chlorine","คลอรีน"],["Ar","Argon","อาร์กอน"],["K","Potassium","โพแทสเซียม"],["Ca","Calcium","แคลเซียม"]];
+const cfgOf=n=>{const o=[0,0,0,0];let r=n;[2,8,8,2].forEach((c,i)=>{const k=Math.min(r,c);o[i]=k;r-=k});return o};
+const DATA=NAMES.map((r,i)=>({z:i+1,symbol:r[0],name:r[1],th:r[2],config:cfgOf(i+1)}));
+const MON=[
+{name:"ปีศาจออกไซด์ (Oxide Monster)",short:"ปีศาจออกไซด์",color:0xff6b81,type:"shadow",info:"ด่านแรกสำหรับธาตุ Z 1–10 ซึ่งมีอิเล็กตรอนอยู่แค่ชั้น K และ L เติมชั้น K ให้เต็ม 2 ตัวก่อน แล้วที่เหลือค่อยใส่ชั้น L"},
+{name:"ราชาไอออน (Ion Lord)",short:"ราชาไอออน",color:0xb48cff,type:"crystal",info:"ด่านกลางสำหรับธาตุ Z 11–18 ชั้น K และ L เต็มแล้ว (2 และ 8) อิเล็กตรอนที่เหลือไปอยู่ชั้น M"},
+{name:"มังกรควอนตัม (Quantum Chaos)",short:"มังกรควอนตัม",color:0xffc233,type:"dragon",info:"ด่านสุดท้ายสำหรับ K (19) และ Ca (20) ชั้น M เต็ม 8 ตัวแล้ว อิเล็กตรอนส่วนที่เหลือถูกดันไปชั้น N"}
+];
+const SH=[{k:"K",max:2,c:"--k",hex:0x6c7bff},{k:"L",max:8,c:"--l",hex:0x22c7e8},{k:"M",max:8,c:"--m",hex:0x2fcf9a},{k:"N",max:2,c:"--n",hex:0xb283ff}];
+const $=id=>document.getElementById(id);
+
+let stageNo=0,score=0,heroHp=100,bossHp=100,cur=DATA[6],busy=false,snd=true;
+const vals=[0,0,0,0];
+let actx=null;
+function tone(a){
+if(!snd)return;
+try{
+actx=actx||new(window.AudioContext||window.webkitAudioContext)();
+if(actx.state==="suspended")actx.resume();
+const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime;
+o.connect(g);g.connect(actx.destination);
+const set=(type,f1,f2,d,v)=>{o.type=type;o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.start(t);o.stop(t+d)};
+if(a==="attack")set("triangle",200,800,.35,.25);
+else if(a==="hit")set("square",160,40,.25,.25);
+else if(a==="tick")set("sine",700,900,.07,.12);
+else if(a==="win"){set("sine",440,880,.6,.25)}
+else if(a==="hurt")set("sawtooth",300,60,.35,.2);
+}catch(e){}
+}
+
+const stage=$("stage"),canvas=$("gl");
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0xffffff,.011);
+const camera=new THREE.PerspectiveCamera(45,1.5,.1,200);
+const HOME=new THREE.Vector3(0,4.6,15.5);
+camera.position.copy(HOME);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.07;controls.enablePan=true;
+controls.minDistance=6;controls.maxDistance=30;controls.maxPolarAngle=1.5;
+controls.target.set(0,1.5,0);controls.autoRotate=false;controls.autoRotateSpeed=.8;
+
+scene.add(new THREE.HemisphereLight(0xffffff,0xcfe0ff,.9));
+const sun=new THREE.DirectionalLight(0xffffff,.85);
+sun.position.set(6,12,9);sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);
+Object.assign(sun.shadow.camera,{left:-12,right:12,top:10,bottom:-10,near:1,far:40});
+sun.shadow.bias=-.0006;
+scene.add(sun);
+const rim=new THREE.DirectionalLight(0xffc2d4,.4);
+rim.position.set(-8,3,-6);scene.add(rim);
+
+const disc=new THREE.Mesh(new THREE.CircleGeometry(11,80),new THREE.MeshStandardMaterial({color:0xeaf4ff,roughness:.95}));
+disc.rotation.x=-Math.PI/2;disc.receiveShadow=true;scene.add(disc);
+const edge=new THREE.Mesh(new THREE.TorusGeometry(11,.16,12,100),new THREE.MeshStandardMaterial({color:0xff8fab,roughness:.5}));
+edge.rotation.x=Math.PI/2;scene.add(edge);
+[-4.6,4.6].forEach((x,i)=>{
+const pad=new THREE.Mesh(new THREE.CylinderGeometry(2.1,2.3,.2,48),new THREE.MeshStandardMaterial({color:i?0xffe3ea:0xdff6ff,roughness:.7}));
+pad.position.set(x,.1,0);pad.receiveShadow=true;pad.castShadow=true;scene.add(pad);
+});
+
+const BN=70,bp=new Float32Array(BN*3),bsp=[];
+for(let i=0;i<BN;i++){bp[i*3]=(Math.random()-.5)*30;bp[i*3+1]=Math.random()*14;bp[i*3+2]=(Math.random()-.5)*20-5;bsp.push(.3+Math.random()*.6)}
+const bGeo=new THREE.BufferGeometry();
+bGeo.setAttribute("position",new THREE.BufferAttribute(bp,3));
+const bubTex=(()=>{const cv=document.createElement("canvas");cv.width=cv.height=64;const g=cv.getContext("2d");g.fillStyle="rgba(190,225,255,.28)";g.beginPath();g.arc(32,32,26,0,6.283);g.fill();g.strokeStyle="rgba(90,169,255,.9)";g.lineWidth=3.5;g.stroke();g.strokeStyle="rgba(255,255,255,.95)";g.lineWidth=4;g.beginPath();g.arc(32,32,17,3.5,4.6);g.stroke();return new THREE.CanvasTexture(cv)})();
+scene.add(new THREE.Points(bGeo,new THREE.PointsMaterial({map:bubTex,size:.8,transparent:true,depthWrite:false})));
+const glowTex=(()=>{const cv=document.createElement("canvas");cv.width=cv.height=128;const g=cv.getContext("2d"),r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,"rgba(255,255,255,1)");r.addColorStop(.3,"rgba(255,255,255,.5)");r.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=r;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(cv)})();
+
+const SG=new THREE.SphereGeometry(1,32,24);
+const std=(c,r=.5)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:.02});
+function S(parent,mat,r,x,y,z,sx=1,sy=1,sz=1){const m=new THREE.Mesh(SG,mat);m.position.set(x,y,z);m.scale.set(r*sx,r*sy,r*sz);m.castShadow=true;parent.add(m);return m}
+function G(parent,geo,mat,x,y,z,rx=0,ry=0,rz=0){const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.rotation.set(rx,ry,rz);m.castShadow=true;parent.add(m);return m}
+
+function makeHero(){
+const g=new THREE.Group();
+const skin=std(0xffe6d1),hair=std(0xffd23f),coat=std(0xffffff),blue=std(0x5b6bff),pink=std(0xff8fab),dark=std(0x27325f,.3),white=std(0xffffff,.3);
+S(g,coat,.62,0,.78,0,1,1.1,.9);
+S(g,pink,.15,-.17,1.3,.5);S(g,pink,.15,.17,1.3,.5);S(g,pink,.09,0,1.3,.58);
+S(g,blue,.2,-.25,.12,.12,1,.7,1.4);S(g,blue,.2,.25,.12,.12,1,.7,1.4);
+S(g,coat,.18,-.7,.82,.05);
+const arm=S(g,coat,.18,.74,1.22,.22);
+G(g,new THREE.CylinderGeometry(.035,.035,1.1,10),std(0xc58b4e),.95,1.55,.32,0,0,-.25);
+const star=G(g,new THREE.IcosahedronGeometry(.25,0),new THREE.MeshStandardMaterial({color:0x5ee1ff,emissive:0x2aa8ff,emissiveIntensity:.7,roughness:.2}),1.07,2.08,.32);
+S(g,hair,1.0,0,2.12,-.14);
+S(g,skin,.95,0,1.95,.1);
+S(g,hair,.3,-.5,2.62,.7);S(g,hair,.32,0,2.76,.78);S(g,hair,.3,.5,2.62,.7);
+S(g,hair,.3,-.92,2.5,-.1);S(g,hair,.3,.92,2.5,-.1);
+S(g,pink,.12,-.92,2.5,.2);S(g,pink,.12,.92,2.5,.2);
+[-1,1].forEach(s=>{S(g,dark,1,s*.33,1.98,.97,.13,.19,.07);S(g,white,1,s*.33-.04,2.05,1.02,.05,.05,.03);S(g,pink,1,s*.57,1.75,.84,.16,.09,.05)});
+G(g,new THREE.TorusGeometry(.1,.025,8,16,Math.PI),dark,0,1.78,1.03,0,0,Math.PI);
+g.userData={star};
+return g;
+}
+
+function makeBoss(info){
+const g=new THREE.Group(),c=info.color,main=std(c,.45),light=std(new THREE.Color(c).lerp(new THREE.Color(0xffffff),.55).getHex(),.5),dark=std(0x27325f,.3),white=std(0xffffff,.3),horn=std(info.type==="dragon"?0xfff1c9:0x5b3b8c,.4);
+S(g,main,1.15,0,1.3,0);
+S(g,light,.85,0,1.05,.55,1,1,.6);
+S(g,main,.28,-.5,.15,.35,1,.6,1.2);S(g,main,.28,.5,.15,.35,1,.6,1.2);
+S(g,main,.26,-1.12,1.1,.15);S(g,main,.26,1.12,1.1,.15);
+[-1,1].forEach(s=>{
+S(g,white,.3,s*.42,1.62,.95,1,1,.7);
+S(g,dark,.14,s*.42+(-s*.02),1.6,1.1,1,1,.6);
+S(g,white,.05,s*.42-.03,1.68,1.16);
+G(g,new THREE.BoxGeometry(.42,.09,.09),dark,s*.42,2.02,.96,0,0,-s*.38);
+});
+G(g,new THREE.TorusGeometry(.17,.035,8,16,Math.PI),dark,0,.98,1.09,0,0,Math.PI);
+if(info.type==="shadow"){
+G(g,new THREE.ConeGeometry(.2,.6,16),horn,-.55,2.5,0,0,0,.4);
+G(g,new THREE.ConeGeometry(.2,.6,16),horn,.55,2.5,0,0,0,-.4);
+S(g,main,.4,-1.2,1.9,-.3,.2,1,1);S(g,main,.4,1.2,1.9,-.3,.2,1,1);
+}else if(info.type==="crystal"){
+const cr=new THREE.MeshStandardMaterial({color:0xe4d4ff,roughness:.15,metalness:.1,emissive:0x8c5cff,emissiveIntensity:.25});
+for(let i=0;i<5;i++){const a=i/5*Math.PI*2,r=.6;G(g,new THREE.OctahedronGeometry(.3),cr,Math.cos(a)*r,2.45+(i%2)*.15,Math.sin(a)*r*.6-.1,0,a,0).scale.set(.8,1.7,.8)}
+G(g,new THREE.OctahedronGeometry(.2),cr,-1.2,1.1,.4).scale.set(.7,1.4,.7);
+G(g,new THREE.OctahedronGeometry(.2),cr,1.2,1.1,.4).scale.set(.7,1.4,.7);
+}else{
+G(g,new THREE.ConeGeometry(.17,.55,16),horn,-.5,2.5,.05,0,0,.35);
+G(g,new THREE.ConeGeometry(.17,.55,16),horn,.5,2.5,.05,0,0,-.35);
+S(g,light,.6,-1.15,1.8,-.4,.18,1,.9).rotation.z=.5;S(g,light,.6,1.15,1.8,-.4,.18,1,.9).rotation.z=-.5;
+G(g,new THREE.ConeGeometry(.3,1,16),main,0,.55,-1.25,-1.2,0,0);
+G(g,new THREE.ConeGeometry(.14,.4,12),horn,0,2.35,-.6,-.4,0,0);
+G(g,new THREE.ConeGeometry(.14,.4,12),horn,0,1.95,-1.0,-.9,0,0);
+}
+const mats=[];g.traverse(o=>{if(o.material&&mats.indexOf(o.material)<0)mats.push(o.material)});
+g.userData={mats,flash:0};
+return g;
+}
+
+const HEROX=-4.6,BOSSX=4.6;
+const hero=makeHero();hero.position.set(HEROX,0,0);hero.rotation.y=.55;scene.add(hero);
+const atom=new THREE.Group();atom.position.set(HEROX,1.45,0);scene.add(atom);
+const RADII=[1.7,2.2,2.7,3.2],TILT=[[.35,.2],[-.5,.9],[.7,-.6],[-.25,1.3]];
+const shells=SH.map((s,i)=>{
+const g=new THREE.Group();g.rotation.set(TILT[i][0],0,TILT[i][1]);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(RADII[i],.03,10,160),new THREE.MeshBasicMaterial({color:s.hex,transparent:true,opacity:.2}));
+ring.rotation.x=Math.PI/2;g.add(ring);
+const mat=new THREE.MeshStandardMaterial({color:s.hex,roughness:.25,emissive:s.hex,emissiveIntensity:.35});
+const els=[];
+for(let k=0;k<s.max;k++){const m=new THREE.Mesh(SG,mat);m.scale.setScalar(.001);m.castShadow=true;g.add(m);els.push({m,o:0,sc:0})}
+atom.add(g);
+return{g,ring,els,sp:.9/Math.pow(i+1,.5)};
+});
+let boss=null,bossPop=0,bossDying=false,heroFlash=0,heroHit=0,heroDown=false;
+
+function spawnBoss(){
+if(boss)scene.remove(boss);
+boss=makeBoss(MON[stageNo]);
+boss.position.set(BOSSX,0,0);boss.rotation.y=-.55;boss.scale.setScalar(.001);
+scene.add(boss);bossPop=0;bossDying=false;
+}
+
+const parts=[],pm={};
+function burst(pos,colors,n=26,speed=5){
+for(let i=0;i<n;i++){
+const c=colors[i%colors.length];
+pm[c]=pm[c]||new THREE.MeshBasicMaterial({color:c,transparent:true});
+const m=new THREE.Mesh(SG,pm[c]);m.scale.setScalar(.08+Math.random()*.1);m.position.copy(pos);scene.add(m);
+const a=Math.random()*6.283,u=Math.random()*2-.6;
+parts.push({m,v:new THREE.Vector3(Math.cos(a)*speed*(.4+Math.random()),speed*(.5+Math.random()*.7)+u,Math.sin(a)*speed*(.4+Math.random())),life:1});
+}
+}
+
+let beam=null;
+function fire(ok){
+const from=new THREE.Vector3(),to=new THREE.Vector3(BOSSX-.4,1.7,0);
+hero.userData.star.getWorldPosition(from);
+const col=ok?0x5ee1ff:0xff6b81;
+const mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.95});
+const head=new THREE.Mesh(SG,mat);head.scale.setScalar(ok?.42:.28);scene.add(head);
+const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:col,transparent:true,opacity:.6,depthWrite:false}));
+sprite.scale.setScalar(ok?2.2:1.4);scene.add(sprite);
+const trail=[];
+for(let i=0;i<9;i++){const m=new THREE.Mesh(SG,mat);scene.add(m);trail.push(m)}
+beam={t:0,ok,from,to,head,sprite,trail,dur:ok?.85:.9};
+}
+function beamPos(b,u,out){
+const f=b.ok?u:(u<.5?u*1.1:(1-u)*1.1);
+out.lerpVectors(b.from,b.to,Math.max(0,f));
+out.y+=Math.sin(Math.PI*Math.max(0,f))*.9;
+return out;
+}
+
+const hsBox=$("hs"),HSD=[];
+const hsInfo=[
+{id:"hero",label:"น้องอะตอม",c:"#5aa9ff",pos:()=>new THREE.Vector3(HEROX,3.45+Math.sin(clk.elapsedTime*2)*.08,0),text:()=>"น้องอะตอมใช้พลังจากอิเล็กตรอนที่จัดเรียงในชั้นพลังงาน K, L, M, N ถ้าจัดถูกต้องจะปล่อยลำแสงโจมตีสุดแรง แต่ถ้าผิดจะเกิดพลังสะท้อนกลับทำให้เสีย 25 HP"},
+{id:"shell",label:"ชั้นพลังงานนอกสุด",c:"#16b9a3",pos:()=>{let s=-1;vals.forEach((v,i)=>{if(v>0)s=i});if(s<0)return null;const sh=shells[s],v=new THREE.Vector3(RADII[s]*Math.cos(clk.elapsedTime*sh.sp),0,RADII[s]*Math.sin(clk.elapsedTime*sh.sp));return sh.g.localToWorld(v)},text:()=>{let s=-1;vals.forEach((v,i)=>{if(v>0)s=i});return `ตอนนี้ชั้นนอกสุดที่มีอิเล็กตรอนคือชั้น ${SH[s].k} มี ${vals[s]} ตัว ซึ่งเรียกว่าเวเลนซ์อิเล็กตรอน ชั้น K จุได้ 2, L จุได้ 8, M จุได้ 8 และ N จุได้ 2 ต้องเติมชั้นในให้เต็มก่อนเสมอ`}},
+{id:"boss",label:"ศัตรูประจำด่าน",c:"#ff6b81",pos:()=>boss?new THREE.Vector3(BOSSX,3.5+Math.sin(clk.elapsedTime*2.2)*.1,0):null,text:()=>`${MON[stageNo].name} · ${MON[stageNo].info}`}
+];
+hsInfo.forEach((h,i)=>{
+const b=document.createElement("button");
+b.type="button";b.className="hs";b.style.setProperty("--c",h.c);
+b.innerHTML=`<span class="pin">${i+1}</span><span class="tag">${h.label}</span>`;
+b.addEventListener("click",()=>{
+HSD.forEach(x=>x.el.classList.remove("open"));b.classList.add("open");
+$("hct").textContent=h.label;$("hcp").textContent=h.text();
+$("hcard").style.setProperty("--c",h.c);$("hcard").classList.add("show");tone("tick");
+});
+hsBox.appendChild(b);h.el=b;HSD.push(h);
+});
+function closeCard(){$("hcard").classList.remove("show");HSD.forEach(x=>x.el.classList.remove("open"))}
+$("hx").addEventListener("click",closeCard);
+const tv=new THREE.Vector3();
+function proj(p){tv.copy(p).project(camera);return[(tv.x*.5+.5)*stage.clientWidth,(-tv.y*.5+.5)*stage.clientHeight,tv.z<1]}
+function placeHS(){
+HSD.forEach(h=>{
+const p=h.pos();
+if(!p){h.el.style.display="none";return}
+h.el.style.display="flex";
+const[x,y,v]=proj(p);
+h.el.style.opacity=v?1:0;h.el.style.pointerEvents=v?"auto":"none";
+h.el.style.transform=`translate(${x-14}px,${y-14}px)`;
+});
+}
+function dmgText(p,txt,ok){
+const[x,y]=proj(p);
+const d=document.createElement("div");
+d.className="dmg"+(ok?" ok":"");d.textContent=txt;d.style.left=x+"px";d.style.top=y+"px";
+hsBox.appendChild(d);setTimeout(()=>d.remove(),1000);
+}
+
+const clk=new THREE.Clock();
+function loop(){
+requestAnimationFrame(loop);
+const dt=Math.min(clk.getDelta(),.05),t=clk.elapsedTime;
+for(let i=0;i<BN;i++){bp[i*3+1]+=dt*bsp[i];bp[i*3]+=Math.sin(t+i)*dt*.2;if(bp[i*3+1]>13)bp[i*3+1]=0}
+bGeo.attributes.position.needsUpdate=true;
+hero.position.y=Math.sin(t*2)*.08;
+atom.position.y=1.45+Math.sin(t*2)*.08;
+hero.userData.star.rotation.y=t*2;hero.userData.star.scale.setScalar(1+Math.sin(t*4)*.12);
+if(heroHit>0){heroHit=Math.max(0,heroHit-dt*2);hero.position.x=HEROX+Math.sin(t*60)*.18*heroHit;atom.position.x=hero.position.x}else{hero.position.x=HEROX;atom.position.x=HEROX}
+heroFlash=Math.max(0,heroFlash-dt*2.5);
+hero.traverse(o=>{if(o.material&&o.material.emissive&&o.material.emissiveIntensity<=.2){o.material.emissive.setHex(heroFlash>0?0xff4466:0x000000);o.material.emissiveIntensity=.001+heroFlash*.1}});
+hero.rotation.z+=((heroDown?-1.2:0)-hero.rotation.z)*Math.min(1,dt*6);
+shells.forEach((sh,i)=>{
+const n=vals[i],ph=t*sh.sp;
+sh.ring.material.opacity+=((n>0?.8:.2)-sh.ring.material.opacity)*Math.min(1,dt*6);
+sh.els.forEach((e,k)=>{
+const on=k<n,tg=n>0?k/n*Math.PI*2:0;
+e.o+=(tg-e.o)*Math.min(1,dt*6);
+e.sc+=((on?.17:0)-e.sc)*Math.min(1,dt*8);
+const a=ph+e.o;
+e.m.position.set(Math.cos(a)*RADII[i],0,Math.sin(a)*RADII[i]);
+e.m.scale.setScalar(Math.max(.001,e.sc));
+});
+});
+if(boss){
+if(bossDying){
+bossPop=Math.max(0,bossPop-dt*1.4);boss.rotation.y+=dt*8;boss.scale.setScalar(Math.max(.001,bossPop));boss.position.y=(1-bossPop)*2;
+}else{
+bossPop=Math.min(1,bossPop+dt*2.2);
+const e=bossPop<1?1-Math.pow(1-bossPop,3)*Math.cos(bossPop*9):1;
+const f=boss.userData.flash=Math.max(0,boss.userData.flash-dt*2.5);
+boss.scale.set(Math.max(.001,e*(1+f*.2)),Math.max(.001,e*(1-f*.25)),Math.max(.001,e*(1+f*.2)));
+boss.position.y=Math.abs(Math.sin(t*2.2))*.12;
+boss.position.x=BOSSX+f*.5;
+boss.userData.mats.forEach(m=>{if(m.emissive&&m.emissiveIntensity<=.3&&!m.userData.keepE){m.emissive.setHex(f>0?0xffffff:0x000000);m.emissiveIntensity=.001+f*.5}});
+}
+}
+if(beam){
+beam.t+=dt/beam.dur;
+const u=Math.min(1,beam.t),p=new THREE.Vector3();
+beamPos(beam,u,p);beam.head.position.copy(p);beam.sprite.position.copy(p);
+beam.head.scale.setScalar((beam.ok?.42:.28)*(1+Math.sin(t*30)*.12));
+beam.trail.forEach((m,i)=>{const q=new THREE.Vector3();beamPos(beam,Math.max(0,u-(i+1)*.035),q);m.position.copy(q);m.scale.setScalar((beam.ok?.34:.22)*(1-i/10))});
+if(beam.t>=1){
+const b=beam;scene.remove(b.head,b.sprite);b.trail.forEach(m=>scene.remove(m));beam=null;
+onBeamEnd(b.ok);
+}
+}
+for(let i=parts.length-1;i>=0;i--){
+const p=parts[i];p.life-=dt*1.1;p.v.y-=dt*9;p.m.position.addScaledVector(p.v,dt);p.m.material.opacity=Math.max(0,p.life);
+if(p.life<=0||p.m.position.y<0){scene.remove(p.m);parts.splice(i,1)}
+}
+controls.update();
+hero.updateMatrixWorld(true);atom.updateMatrixWorld(true);
+placeHS();
+renderer.render(scene,camera);
+}
+function resize(){
+const w=stage.clientWidth,h=stage.clientHeight,a=w/h;
+renderer.setSize(w,h,false);
+camera.aspect=a;
+camera.fov=Math.min(80,45*Math.pow(Math.max(1,1.55/a),.8));
+camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);resize();
+
+$("autoBtn").addEventListener("click",e=>{controls.autoRotate=!controls.autoRotate;e.currentTarget.classList.toggle("on",controls.autoRotate)});
+$("resetBtn").addEventListener("click",()=>{camera.position.copy(HOME);controls.target.set(0,1.5,0);controls.update()});
+$("sndBtn").addEventListener("click",e=>{snd=!snd;e.currentTarget.textContent=snd?"🔊 เสียง":"🔇 ปิดเสียง"});
+$("sndBtn").classList.add("on");
+
+const shellsBox=$("shells"),legend=$("legend"),inputs=[],outs=[],lgs=[];
+SH.forEach((s,i)=>{
+const d=document.createElement("div");
+d.className="sh";d.style.setProperty("--cc",`var(${s.c})`);
+d.innerHTML=`<div class="r"><span>ชั้น ${s.k} (สูงสุด ${s.max})</span><output id="v${i}">0</output></div><div class="ctl"><button type="button" aria-label="ลด">−</button><input type="range" min="0" max="${s.max}" value="0" aria-label="จำนวนอิเล็กตรอนชั้น ${s.k}"><button type="button" aria-label="เพิ่ม">+</button></div>`;
+shellsBox.appendChild(d);
+const inp=d.querySelector("input"),bs=d.querySelectorAll("button");
+inputs.push(inp);outs.push(d.querySelector("output"));
+inp.addEventListener("input",()=>{upd();tone("tick")});
+bs[0].addEventListener("click",()=>{inp.value=Math.max(0,+inp.value-1);upd();tone("tick")});
+bs[1].addEventListener("click",()=>{inp.value=Math.min(s.max,+inp.value+1);upd();tone("tick")});
+const l=document.createElement("span");
+l.className="lg card";l.style.color=`var(${s.c})`;
+l.innerHTML=`<i style="background:var(${s.c})"></i>${s.k} <b>0</b>`;
+legend.appendChild(l);lgs.push(l.querySelector("b"));
+});
+function upd(){
+let sum=0;
+inputs.forEach((inp,i)=>{vals[i]=+inp.value;outs[i].textContent=vals[i];lgs[i].textContent=vals[i]+"/"+SH[i].max;sum+=vals[i]});
+const t=$("tot");t.textContent=sum;t.className=sum===cur.z?"ok":sum>cur.z?"over":"";
+$("totBar").style.width=Math.min(100,sum/cur.z*100)+"%";
+}
+function hpUI(){
+$("hpH").style.width=heroHp+"%";$("hhT").textContent=heroHp+"/100";
+$("hpB").style.width=bossHp+"%";$("bhT").textContent=bossHp+"/100";
+}
+function initRound(){
+bossHp=100;
+const pool=DATA.filter(e=>stageNo===0?e.z<=10:stageNo===1?e.z>=11&&e.z<=18:e.z>=19);
+cur=pool[Math.floor(Math.random()*pool.length)];
+$("stageBadge").textContent=`ด่านที่ ${stageNo+1}/3`;
+$("monTitle").textContent=MON[stageNo].name;
+$("bName").textContent="👾 "+MON[stageNo].short;
+$("hSym").textContent=cur.symbol;$("hZ").textContent=cur.z;
+$("tSym").textContent=cur.symbol;$("tTh").textContent=cur.th;$("tEn").textContent=cur.name;$("tZ").textContent=cur.z;$("tE").textContent=cur.z;$("tgt").textContent=cur.z;
+const tile=$("tile");tile.classList.remove("pop");void tile.offsetWidth;tile.classList.add("pop");
+inputs.forEach(i=>i.value=0);
+upd();hpUI();spawnBoss();closeCard();
+}
+
+function shake(){const s=$("stage");s.classList.remove("shake");void s.offsetWidth;s.classList.add("shake")}
+const MS=[0xff8fab,0xffd166,0x5ee1ff,0xb79cff,0x8ff0dc];
+let pending=null;
+$("atk").addEventListener("click",()=>{
+if(busy)return;
+const ok=vals.every((v,i)=>v===cur.config[i]);
+busy=true;$("atk").disabled=true;closeCard();
+pending={ok,user:vals.slice()};
+tone("attack");fire(ok);
+});
+function onBeamEnd(ok){
+tone(ok?"hit":"hurt");shake();
+if(ok){
+bossHp=0;score+=100;$("score").textContent=score;
+boss.userData.flash=1;
+const p=new THREE.Vector3(BOSSX,1.8,0);
+burst(p,MS,40,6);
+dmgText(new THREE.Vector3(BOSSX,3.2,0),"CRITICAL 100 HP!",true);
+setTimeout(()=>{bossDying=true},250);
+}else{
+heroHp=Math.max(0,heroHp-25);
+heroFlash=1;heroHit=1;
+burst(new THREE.Vector3(HEROX,1.6,0),[0xff6b81,0xffb3c1],22,4);
+dmgText(new THREE.Vector3(HEROX,3.2,0),"-25 HP (พลังสะท้อน!)",false);
+if(heroHp<=0)heroDown=true;
+}
+hpUI();
+setTimeout(()=>showResult(pending.ok,pending.user),900);
+}
+
+const mask=$("resM");
+function showResult(ok,user){
+const target=cur.config,fmt=target.filter((v,i)=>i===0||target[i-1]>0||v>0).join(", ");
+const I=$("rI"),T=$("rT"),S2=$("rS"),B=$("rB"),btn=$("rBtn");
+mask.classList.add("on");
+if(ok){
+I.style.background="var(--ok)";I.textContent="✓";
+T.textContent="โจมตีสำเร็จ! การจัดเรียงถูกต้อง";T.style.color="var(--ok)";
+S2.textContent=`ทำลาย ${MON[stageNo].name} เรียบร้อย!`;
+B.className="mb good";
+B.innerHTML=`<b>คำอธิบายทางเคมี</b><p style="margin-top:4px">ธาตุ <b>${cur.th} (${cur.symbol})</b> เลขอะตอม <b>${cur.z}</b></p><p style="margin-top:4px">จัดเรียงอิเล็กตรอนในชั้น K, L, M, N เป็น <span class="code">${fmt}</span></p>`;
+if(stageNo<2){
+btn.textContent="ผ่านเข้าสู่ด่านถัดไป ➔";
+btn.onclick=()=>{stageNo++;mask.classList.remove("on");busy=false;$("atk").disabled=false;initRound()};
+}else{
+tone("win");
+btn.textContent="🏆 ชนะเกมแล้ว! เล่นใหม่อีกครั้ง";
+btn.onclick=()=>{stageNo=0;score=0;heroHp=100;heroDown=false;$("score").textContent="0";mask.classList.remove("on");busy=false;$("atk").disabled=false;initRound()};
+}
+}else{
+const sum=user.reduce((a,b)=>a+b,0);
+I.style.background="var(--bad)";I.textContent="✕";
+T.textContent="การจัดเรียงไม่ถูกต้อง!";T.style.color="var(--bad)";
+S2.textContent="พลังสะท้อนกลับทำให้พลังชีวิตลดลง";
+B.className="mb badc";
+B.innerHTML=`<div><b>การจัดที่คุณเลือก:</b> <span class="code" style="color:var(--bad)">${user.join(", ")}</span></div><div style="margin-top:4px"><b>การจัดที่ถูกต้อง:</b> <span class="code" style="color:var(--ok)">${fmt}</span></div><p style="margin-top:8px;padding-top:8px;border-top:2px dashed #f7c7a3;font-size:.82rem">💡 <b>เกร็ดความรู้:</b> ${sum!==cur.z?`อิเล็กตรอนรวมของคุณคือ ${sum} ตัว แต่ธาตุนี้มีเลขอะตอม ${cur.z} จึงต้องใช้ ${cur.z} ตัวพอดี`:"จำนวนรวมถูกแล้ว แต่การกระจายยังไม่ถูก ต้องเติมชั้นในให้เต็มก่อนเสมอ (K 2 → L 8 → M 8 → N)"}</p>`;
+if(heroHp<=0){
+btn.textContent="💥 พลังหมดแล้ว! ลองใหม่อีกครั้ง";
+btn.onclick=()=>{heroHp=100;heroDown=false;mask.classList.remove("on");busy=false;$("atk").disabled=false;initRound()};
+}else{
+btn.textContent="ลองปรับใหม่อีกครั้ง ➔";
+btn.onclick=()=>{mask.classList.remove("on");busy=false;$("atk").disabled=false};
+}
+}
+}
+$("guideBtn").addEventListener("click",()=>$("guideM").classList.add("on"));
+$("gOk").addEventListener("click",()=>$("guideM").classList.remove("on"));
+$("guideM").addEventListener("click",e=>{if(e.target===$("guideM"))$("guideM").classList.remove("on")});
+
+initRound();
+loop();
+</script>
+</body>
+</html>
